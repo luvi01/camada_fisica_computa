@@ -19,8 +19,8 @@ import cv2
 #   para saber a sua porta, execute no terminal :
 #   python -m serial.tools.list_ports
 
-#serialName = "/dev/ttyACM0"           # Ubuntu (variacao de)
-serialName = "/dev/tty.usbmodem14411" # Mac    (variacao de)
+serialName = "/dev/ttyACM0"           # Ubuntu (variacao de)
+#serialName = "/dev/tty.usbmodem14411" # Mac    (variacao de)
 #serialName = "COM11"                  # Windows(variacao de)
 print("abriu com")
 
@@ -30,7 +30,7 @@ def main():
     # Ativa comunicacao
     com.enable()
 
-   
+  
 
     # Log
     print("-------------------------")
@@ -54,7 +54,7 @@ def main():
     #img = cv2.imread('imagem_ruim.jpeg')
     #img_shape = img.shape
 
-    with open("imagem_ruim.jpeg", "rb") as image:
+    with open(str(salvo)+".jpeg", "rb") as image:
       f = image.read()
       txBuffer = bytearray(f)
       #print(txBuffer[0])
