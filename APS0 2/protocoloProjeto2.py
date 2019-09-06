@@ -3,7 +3,6 @@ import time
 from PIL import Image
 import cv2
 import protocoloProjeto2 as prt
-import math
 
 
 class Protocol():
@@ -15,12 +14,6 @@ class Protocol():
         self.timeFinal = None
         self.overhead = None
         self.setEop = [5, 7, 8, 9]
-        self.CurrentPackage = None
-        self.nPackages = math.ceil(len(bytearray(self.image))/114)
-        self.AllPackages = None
-        self.head = None
-        self.bytecode = None
-        self.all = None
         try:
             self.com.enable()
             time.sleep(2)
@@ -30,12 +23,6 @@ class Protocol():
         except:
             print("Porta Errada")
     
-
-    def chunks(self,l, n):
-        for i in range(0, len(l), n):
-            yield l[i:i + n]
-
-
     #Definir o setHead com o len do payload mais eop
     def getArrayImage(self):
         arrayImage = bytearray(self.image)
@@ -59,7 +46,8 @@ class Protocol():
                 newList.pop()
                 newList += [0,listVerify[0],0,listVerify[1],0,listVerify[2],0,listVerify[3],0]
                 listVerify.remove(listVerify[0])
-                        
+                listVerify.append(bits)
+                newList.append(bits)        
         finalList = bytearray(newList)
         return finalList
     
@@ -68,55 +56,37 @@ class Protocol():
         stuffin = self.setPayload() + bytearray(self.setEop)
         return len(stuffin)
     
-    def setHead(self,lenP,n,nf):
-        headLen = (lenP.to_bytes(4, byteorder='big'))
-        headPackagesC = n.to_bytes(1, byteorder='big')
-        headPackagesF = nf.to_bytes(1, byteorder='big')
-        headFour = bytearray([0, 0, 0, 0])
-        head = headLen + headPackagesC + headPackagesF + headFour
+    def setHead(self):
+        headLen = (self.lenPayloadEop().to_bytes(4, byteorder='big'))
+        headSix = bytearray([0, 0, 0, 0, 0, 0])
+        head = headSix + headLen
         return head
 
-    
-        
-    def readHead(self):
-        headAll, _ = self.com.getData(10)
-        head = headAll[0:4]
-        self.CurrentPackage = int.from_bytes(headAll[4:5], byteorder="big")
-        self.AllPackages = int.from_bytes(headAll[5:6], byteorder="big")
-        self.head = int.from_bytes(head, byteorder="big")
-        print(head)
-        self.bytecode, _ = self.com.getData(self.head)
-        self.all = head + self.bytecode
-        self.com.rx.clearBuffer()
-
-
-    def receiveFlag(self):
-        self.readHead()
-        print(int.from_bytes(self.bytecode, byteorder='big'))
-        if int.from_bytes(self.bytecode, byteorder='big') == 1:
-            return False
-        else:
-            print("-------------------------")
-            print("Comunicação encerrada")
-            print("-------------------------")
-            self.timeFinal = time.time() - self.start_time
-            self.com.disable()
-            return True
-
     def sendAllProtocol(self):
-
-        packages = []
-        payloadPackages = list(self.chunks(self.setPayload(),114))
-        for p in range(self.nPackages):
-            allCode = self.setHead(len(payloadPackages[p]) + 4,p,self.nPackages) + payloadPackages[p] + bytearray(self.setEop)
-            packages.append(allCode)
+        allCode = self.setHead() + self.setPayload() + bytearray(self.setEop)
+        self.com.sendData(allCode)
         self.start_time = time.time()
-        for package in packages:
-            self.com.sendData(package)
-            if self.receiveFlag():
-                break
         overhead = len(allCode)/len(self.setPayload())
         self.overhead = overhead
+        
+    
+    def receiveFlag(self):
+        confirm = [1,1,1,1]
+        deny = [0,0,0,0]
+        rxBuffer, nRx = self.com.getData(4)
+        try:
+            if rxBuffer == bytearray(confirm):
+                print("-------------------------")
+                print("Comunicação encerrada")
+                print("-------------------------")
+                self.timeFinal = time.time() - self.start_time
+                self.com.disable()
+
+        except:
+            print("-------------------------")
+            print("Comunicação falha")
+            print("-------------------------")
+            self.com.disable()
     
     def printer(self):
         print("Taxa de envio: {} b/s".format(str(len(self.getArrayImage())/self.timeFinal)))
@@ -146,28 +116,16 @@ class ReadProtocol():
         self.download = None
         self.eopState = False
         self.bytesVsHeadState = False
-        self.CurrentPackage = None
-        self.AllPackages = None
-        self.AllFile = None
-        self.final_time = None
-
-    def setHead(self,lenP,n,nf):
-        headLen = (lenP.to_bytes(4, byteorder='big'))
-        headPackagesC = n.to_bytes(1, byteorder='big')
-        headPackagesF = nf.to_bytes(1, byteorder='big')
-        headFour = bytearray([0, 0, 0, 0])
-        head = headLen + headPackagesC + headPackagesF + headFour
-        return head
 
 
     def readHead(self):
-        headAll, _ = self.com.getData(10)
-        head = headAll[0:4]
-        self.CurrentPackage = int.from_bytes(headAll[4:5], byteorder="big")
-        self.AllPackages = int.from_bytes(headAll[5:6], byteorder="big")
+        head, _ = self.com.getData(10)
+        self.start_time = time.time()
+        head = head[6:10]
         self.head = int.from_bytes(head, byteorder="big")
         self.bytecode, _ = self.com.getData(self.head)
         self.all = head + self.bytecode
+        print(self.bytecode)
 
     def readPayload(self):
         lenghtPayload = self.bytecode
@@ -217,52 +175,22 @@ class ReadProtocol():
                 newReadList.pop()
                 newReadList.pop()
                 newReadList.pop()
-                #newReadList += self.eop
+                newReadList += self.eop
                 checkerStuff.remove(checkerStuff[0])
                 checkerStuff.append(byte)
                 newReadList.append(byte)
-        newReadList = newReadList[:len(newReadList) - 4]
+
         payload = bytearray(newReadList)
         return payload
-
-    def ask(self,payload):
-        asker = bytearray([payload])
-        head = self.setHead(1,0,0)
-        package = head + asker + bytearray(self.eop)
-        self.com.sendData(package)
-
-    
-    def assembly(self):
-        self.start_time = time.time()
-        self.readHead()
-        num = self.AllPackages
-        print(num)
-        AllFile = self.readPayload()
-        print(AllFile)
-        for p in range(num-1):
-            self.ask(1)
-            self.readHead()
-            package = self.readPayload()
-            AllFile += package
-            print(package)
-            print(p)            
-            
-        self.final_time = time.time()-self.start_time
-        self.download = len(AllFile)/(self.final_time)
-        print("Fim")
-        print(AllFile)
-        self.AllFile = AllFile
-
-
    
     def saveImage(self):
         try:
             with open('nova.jpg', 'wb') as image:
-                image.write(self.AllFile)
+                image.write(self.readPayload())
+                self.download = len(self.all)/(time.time()-self.start_time)
                 
-                
-
-            self.ask(0)
+            confirm = [1,1,1,1]
+            self.com.sendData(bytearray(confirm))
             print("-------------------------")
             print("Comunicação encerrada")
             print("-------------------------")
@@ -271,7 +199,8 @@ class ReadProtocol():
             print("-------------------------")
             print("Não foi possível salvar a imagem")
             print("-------------------------")
-            #self.com.sendData(bytearray(deny))
+            deny = [0,0,0,0]
+            self.com.sendData(bytearray(deny))
 
         while(self.com.tx.getIsBussy()):
             pass
@@ -279,7 +208,7 @@ class ReadProtocol():
         self.com.disable()
     
     def printer(self):
-        print("Tamanho da imagem em bytes: {}".format(len(self.AllFile)))
+        print("Tamanho da imagem em bytes: {}".format(len(self.bytecode)))
         if self.eopState and self.bytesVsHeadState == False:
             print("----------------")
             print("EOP encontrado!")
@@ -297,3 +226,5 @@ class ReadProtocol():
         print("----------------")
         print("Taxa de Download: {} b/s".format(self.download))
         print("----------------")
+        
+            

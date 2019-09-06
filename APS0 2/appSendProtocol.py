@@ -22,21 +22,21 @@ from enlaceRx import RX
 #   python -m serial.tools.list_ports
 
 #serialName = "/dev/ttyACM0"           # Ubuntu (variacao de)
-serialName = "/dev/cu.usbmodem14431" # Mac    (variacao de)
+serialName = "/dev/tty.usbmodem14131" # Mac    (variacao de)
 #serialName = "COM11"                  # Windows(variacao de)
 # print("abriu com")
 
 def main():
 
     #Lê a imagem e adiciona no protocolo
-    with open("imagem_ruim.jpeg", "rb") as image:
-        f = image.read()
-    #f = [1,1,1,1,1,6,7,8,9,1]
-    print(bytearray(f))
+    #with open("imagem_ruim.jpeg", "rb") as image:
+         #f = image.read()
+    f = [1,1,1,1,1,5,7,8,9]
     protocol = prt.Protocol(f, serialName)
 
     #Envia o Buffer no protocolo
     protocol.sendAllProtocol()
+    protocol.receiveFlag()
     protocol.printer()
 
 

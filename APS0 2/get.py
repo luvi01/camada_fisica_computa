@@ -13,7 +13,7 @@ from enlaceTx import TX
 #   python -m serial.tools.list_ports
 
 
-serialName = "/dev/cu.usbmodem14421"           # Ubuntu (variacao de)
+serialName = "/dev/cu.usbmodem14121"           # Ubuntu (variacao de)
 #serialName = "/dev/tty.usbmodem14441" # Mac    (variacao de)
 #serialName = "COM11"                  # Windows(variacao de)
 print("abriu com")
@@ -21,7 +21,7 @@ print("abriu com")
 def main():
 
     readprotocol = prt.ReadProtocol(serialName)
-    readprotocol.assembly()
+    readprotocol.readHead()
     readprotocol.saveImage()
     readprotocol.printer()
 
