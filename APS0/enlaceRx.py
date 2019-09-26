@@ -102,6 +102,34 @@ class RX(object):
             time.sleep(0.001)
 #                 
         return(self.getBuffer(size))
+    
+    def getNDataTimer5(self, size, timer):
+        """ Read N bytes of data from the reception buffer
+        This function blocks until the number of bytes is received
+        """
+        tempo = time.time()
+
+        while(self.getBufferLen() < size):
+            time.sleep(0.001)
+            final = time.time() - tempo
+            if final > timer and self.getBufferLen() == 0:
+                return None
+            
+        return(self.getBuffer(size))
+        
+    def getNDataTimer20(self, size):
+        """ Read N bytes of data from the reception buffer
+        This function blocks until the number of bytes is received
+        """
+        tempo = 0
+
+        while(self.getBufferLen() < size):
+            time.sleep(0.001)
+            tempo += 0.001
+            if tempo >= 5 and self.getBufferLen() == 0:
+                return None
+                       
+        return(self.getBuffer(size))
 
 
     def clearBuffer(self):

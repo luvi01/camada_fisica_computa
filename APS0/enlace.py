@@ -58,3 +58,21 @@ class enlace(object):
         data = self.rx.getNData(size)
        
         return(data, len(data))
+
+    
+    def getDataTimer5(self, size, timer):
+        print('entrou na leitura e tentara ler ' + str(size) )
+        data = self.rx.getNDataTimer5(size, timer)
+        if data == None:
+            return(data, 0)
+        else:
+            return(data, len(data))
+
+    def getDataTimer20(self, size):
+        """ Get n data over the enlace interface
+        Return the byte array and the size of the buffer
+        """
+        print('entrou na leitura e tentara ler ' + str(size) )
+        data = self.rx.getNDataTimer20(size)
+       
+        return(data, len(data))
